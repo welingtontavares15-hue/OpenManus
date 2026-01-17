@@ -14,7 +14,17 @@ const STAGES = [
 ];
 
 async function fetchAPI(endpoint, options = {}) {
+    const token = localStorage.getItem('token');
+    if (!options.headers) options.headers = {};
+    if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const res = await fetch(`${API}${endpoint}`, options);
+    if (res.status === 401) {
+        showLogin();
+        return null;
+    }
     if (!res.ok) {
         const err = await res.json();
         alert(`Error: ${err.detail || 'Request failed'}`);
@@ -22,6 +32,38 @@ async function fetchAPI(endpoint, options = {}) {
     }
     return res.json();
 }
+
+function showLogin() {
+    document.getElementById('loginOverlay').style.setProperty('display', 'flex', 'important');
+}
+
+function hideLogin() {
+    document.getElementById('loginOverlay').style.setProperty('display', 'none', 'important');
+}
+
+document.getElementById('loginForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    const res = await fetch(`${API}/auth/login/access-token`, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (res.ok) {
+        const data = await res.json();
+        localStorage.setItem('token', data.access_token);
+        hideLogin();
+        initApp();
+    } else {
+        alert('Login failed. Check credentials.');
+    }
+};
 
 // Workflows
 async function loadRequests() {
@@ -125,6 +167,26 @@ async function viewRequest(id) {
     } else if (req.status === 'completed') {
         actionArea.innerHTML = '<div class="alert alert-success py-2 mb-0 d-inline-block">Project Successfully Completed</div>';
     }
+
+    loadTimeline(id);
+}
+
+async function loadTimeline(id) {
+    const data = await fetchAPI(`/requests/${id}/timeline`);
+    const container = document.getElementById('requestTimeline');
+    container.innerHTML = '';
+    data.forEach(log => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item px-0 py-2 border-0 d-flex';
+        li.innerHTML = `
+            <div class="me-3 text-muted" style="min-width: 80px;">${new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+            <div>
+                <div class="fw-bold">${log.action.replace('_', ' ')}</div>
+                <div class="text-muted small">${log.details ? JSON.stringify(log.details) : ''}</div>
+            </div>
+        `;
+        container.appendChild(li);
+    });
 }
 
 function hideDetails() {
@@ -227,8 +289,13 @@ async function uploadDoc() {
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
 
+    const token = localStorage.getItem('token');
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const res = await fetch(`${API}/documents/${currentRequestId}/upload?doc_type=${type}`, {
         method: 'POST',
+        headers: headers,
         body: formData
     });
     if (res.ok) {
@@ -311,20 +378,59 @@ document.getElementById('maintenanceLogForm').onsubmit = async (e) => {
     document.getElementById('maintenanceLogForm').reset();
 };
 
+// Kanban
+async function loadKanban() {
+    const data = await fetchAPI('/requests/');
+    const board = document.getElementById('kanbanBoard');
+    board.innerHTML = '';
+
+    STAGES.forEach(stage => {
+        const col = document.createElement('div');
+        col.className = 'kanban-col';
+        col.innerHTML = `<div class="kanban-header text-uppercase small">${stage.label}</div>`;
+
+        const stageRequests = data.filter(r => r.status === stage.id);
+        stageRequests.forEach(req => {
+            const card = document.createElement('div');
+            card.className = 'kanban-card';
+            card.innerHTML = `
+                <div class="fw-bold small">#${req.id} - ${req.client_id}</div>
+                <div class="text-muted extra-small" style="font-size: 0.7rem;">${new Date(req.created_at).toLocaleDateString()}</div>
+            `;
+            card.onclick = () => viewRequest(req.id);
+            col.appendChild(card);
+        });
+        board.appendChild(col);
+    });
+}
+
 // Tab Navigation
 function showTab(tabId) {
     document.querySelectorAll('.tab-content-panel').forEach(p => p.style.display = 'none');
     document.getElementById(tabId + 'Panel').style.display = 'block';
+    document.getElementById('detailsPanel').style.display = 'none';
 
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    event.target.classList.add('active');
+    if (event) event.target.classList.add('active');
 
     if (tabId === 'list') loadRequests();
+    if (tabId === 'kanban') loadKanban();
     if (tabId === 'machine') loadMachines();
 }
 
 // Initial Load
-loadRequests();
-loadPartners();
-loadNotifications();
-setInterval(loadNotifications, 60000);
+function initApp() {
+    loadRequests();
+    loadPartners();
+    loadNotifications();
+}
+
+if (!localStorage.getItem('token')) {
+    showLogin();
+} else {
+    initApp();
+}
+
+setInterval(() => {
+    if (localStorage.getItem('token')) loadNotifications();
+}, 60000);

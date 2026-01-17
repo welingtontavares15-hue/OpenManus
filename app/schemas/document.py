@@ -1,11 +1,16 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from app.models import DocumentType
+from typing import Optional
+from app.models import DocumentType, DocumentStatus
 
 class DocumentBase(BaseModel):
     doc_type: DocumentType
     file_path: str
     filename: str
+    file_hash: Optional[str] = None
+    version: int = 1
+    status: DocumentStatus = DocumentStatus.PENDING
+    valid_until: Optional[datetime] = None
 
 class DocumentCreate(DocumentBase):
     request_id: int

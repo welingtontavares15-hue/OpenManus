@@ -10,6 +10,11 @@ class DocumentType(enum.Enum):
     ACCEPTANCE = "acceptance"
     OTHER = "other"
 
+class DocumentStatus(enum.Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
 class Document(Base):
     __tablename__ = "documents"
 
@@ -18,6 +23,10 @@ class Document(Base):
     doc_type = Column(Enum(DocumentType))
     file_path = Column(String)
     filename = Column(String)
+    file_hash = Column(String, nullable=True)
+    version = Column(Integer, default=1)
+    status = Column(Enum(DocumentStatus), default=DocumentStatus.PENDING)
+    valid_until = Column(DateTime, nullable=True)
     uploaded_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.UTC))
 
     request = relationship("Request", back_populates="documents")

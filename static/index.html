@@ -9,6 +9,32 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-light">
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 z-3 d-flex align-items-center justify-content-center" style="display:none !important;">
+        <div class="card shadow-lg" style="width: 100%; max-width: 400px;">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-shield-lock text-primary display-4"></i>
+                    <h4 class="mt-2">System Login</h4>
+                    <p class="text-muted small">Please authenticate to continue</p>
+                </div>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="admin@example.com" value="admin@example.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="admin123" value="admin123" required>
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary">Sign In</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="#">
@@ -26,6 +52,9 @@
         <ul class="nav nav-tabs mb-4">
             <li class="nav-item">
                 <a class="nav-link active" onclick="showTab('list')">Workflows</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" onclick="showTab('kanban')">Kanban View</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" onclick="showTab('machine')">Machines & Maintenance</a>
@@ -77,6 +106,13 @@
                                 <tbody id="requestTableBody"></tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Kanban Tab -->
+                <div id="kanbanPanel" class="tab-content-panel" style="display:none;">
+                    <div class="row kanban-board g-3 overflow-auto flex-nowrap pb-3" id="kanbanBoard">
+                        <!-- Kanban columns generated dynamically -->
                     </div>
                 </div>
 
@@ -162,6 +198,18 @@
                                 </div>
                             </div>
                             <div class="mt-4 text-end" id="finalActionArea"></div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline Section -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">Case Timeline</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush small" id="requestTimeline">
+                                <!-- Timeline items -->
+                            </ul>
                         </div>
                     </div>
                 </div>

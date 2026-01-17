@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app import models, schemas, crud
 from app.database import get_db
+from app.api.deps import get_current_user
 from typing import List
 
 router = APIRouter()
 
 @router.get("/summary", summary="Get system-wide summary for external dashboards")
-def get_system_summary(db: Session = Depends(get_db)):
+def get_system_summary(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """Returns a consolidated summary of the system state for integration with external dashboards (e.g. Firebase)."""
     total_requests = db.query(models.Request).count()
     active_requests = db.query(models.Request).filter(models.Request.status != models.RequestStatus.COMPLETED).count()
@@ -30,7 +31,7 @@ def get_system_summary(db: Session = Depends(get_db)):
     }
 
 @router.post("/notify-external", summary="Simulate notification to external system")
-def notify_external(event_type: str, payload: dict):
+def notify_external(event_type: str, payload: dict, current_user: models.User = Depends(get_current_user)):
     """Simulates sending a webhook notification to an external system (like the DIVERSEY PWA)."""
     # In a real scenario, this would send an HTTP request to a configured URL
     return {"status": "success", "message": f"Notification for {event_type} sent to external system"}

@@ -51,9 +51,21 @@ def test_workflow_machine_integration():
     })
     request_id = req_res.json()["id"]
 
-    # 3. Advance request to completion
-    # We can skip intermediate steps for this unit test by calling the completion endpoint directly
-    # (though in a real flow it would go through stages)
+    # 3. Advance request through stages to completion
+    # Quotation -> Supplier Interaction
+    client.post(f"/api/v1/requests/{request_id}/quotes", json={
+        "partner_id": 1, "price": 100, "details": "test"
+    })
+    # Supplier Interaction -> Selection
+    client.post(f"/api/v1/requests/{request_id}/select-quote", params={"quote_id": 1})
+    # Selection -> Contracting
+    client.post(f"/api/v1/documents/{request_id}/upload", params={"doc_type": "contract"}, files={"file": ("c.txt", "content")})
+    # Contracting -> Installation
+    client.post(f"/api/v1/documents/{request_id}/upload", params={"doc_type": "invoice"}, files={"file": ("i.txt", "content")})
+    # Installation -> Technical Acceptance
+    client.post(f"/api/v1/documents/{request_id}/upload", params={"doc_type": "acceptance"}, files={"file": ("a.txt", "content")})
+
+    # Technical Acceptance -> Completed
     response = client.post(f"/api/v1/requests/{request_id}/complete-technical-acceptance")
     assert response.status_code == 200
     assert response.json()["status"] == "completed"
