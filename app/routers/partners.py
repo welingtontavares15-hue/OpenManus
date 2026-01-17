@@ -6,10 +6,11 @@ from ..database import get_db
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.Partner)
+@router.post("/", response_model=schemas.Partner, summary="Register a partner")
 def create_partner(partner: schemas.PartnerCreate, db: Session = Depends(get_db)):
+    """Registers a new partner/supplier in the system."""
     return crud.create_partner(db=db, partner=partner)
 
-@router.get("/", response_model=List[schemas.Partner])
+@router.get("/", response_model=List[schemas.Partner], summary="List partners")
 def read_partners(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return crud.get_partners(db, skip=skip, limit=limit)

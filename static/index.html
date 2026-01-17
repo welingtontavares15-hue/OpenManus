@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dishwasher Workflow Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .status-badge { font-size: 0.8rem; }
+        .workflow-step { padding: 10px; border-radius: 5px; background: #f8f9fa; margin-bottom: 10px; }
+        .workflow-step.active { background: #e7f1ff; border: 1px solid #0d6efd; }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-primary mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">Dishwasher Workflow System</a>
+            <div class="navbar-nav">
+                <a class="nav-link active" href="/docs">API Documentation (Swagger)</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">New Request</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="newRequestForm">
+                            <div class="mb-3">
+                                <label class="form-label">Client ID</label>
+                                <input type="text" id="clientId" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea id="description" class="form-control" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Create Workflow</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">Notifications</h5>
+                    </div>
+                    <div class="card-body" id="notificationList">
+                        <p class="text-muted">Loading notifications...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Active Requests</h5>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="loadRequests()">Refresh</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Client</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="requestTableBody">
+                                    <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function loadRequests() {
+            try {
+                const response = await fetch(`${API_BASE}/requests/`);
+                const requests = await response.json();
+                const tbody = document.getElementById('requestTableBody');
+                tbody.innerHTML = '';
+
+                requests.forEach(req => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${req.id}</td>
+                        <td>${req.client_id}</td>
+                        <td><span class="badge bg-info text-dark status-badge">${req.status.replace('_', ' ')}</span></td>
+                        <td>${new Date(req.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewDetails(${req.id})">Details</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadNotifications() {
+            try {
+                const response = await fetch(`${API_BASE}/requests/notifications/upcoming`);
+                const notifications = await response.json();
+                const div = document.getElementById('notificationList');
+                div.innerHTML = '';
+
+                if (notifications.length === 0) {
+                    div.innerHTML = '<p class="text-muted">No upcoming actions required.</p>';
+                    return;
+                }
+
+                notifications.forEach(notif => {
+                    const item = document.createElement('div');
+                    item.className = 'alert alert-warning py-2 small';
+                    item.innerHTML = `<strong>Req #${notif.id}</strong>: Contract expiring or adjustment due soon.`;
+                    div.appendChild(item);
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        document.getElementById('newRequestForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const client_id = document.getElementById('clientId').value;
+            const description = document.getElementById('description').value;
+
+            await fetch(`${API_BASE}/requests/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ client_id, description })
+            });
+
+            document.getElementById('newRequestForm').reset();
+            loadRequests();
+        };
+
+        function viewDetails(id) {
+            window.location.href = `/api/requests/${id}`;
+        }
+
+        loadRequests();
+        loadNotifications();
+        setInterval(loadNotifications, 30000);
+    </script>
+</body>
+</html>

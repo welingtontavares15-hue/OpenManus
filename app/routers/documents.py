@@ -13,13 +13,14 @@ UPLOAD_DIR = "uploads"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-@router.post("/{request_id}/upload", response_model=schemas.Document)
+@router.post("/{request_id}/upload", response_model=schemas.Document, summary="Upload a document")
 async def upload_document(
     request_id: int,
     doc_type: models.DocumentType,
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
+    """Uploads a document (Contract, NF, etc.) and automatically advances the request status."""
     db_request = crud.get_request(db, request_id=request_id)
     if not db_request:
         raise HTTPException(status_code=404, detail="Request not found")
@@ -49,14 +50,14 @@ async def upload_document(
 
     return crud.create_document(db=db, document=doc_create)
 
-@router.get("/{request_id}", response_model=List[schemas.Document])
+@router.get("/{request_id}", response_model=List[schemas.Document], summary="List documents for a request")
 def list_documents(request_id: int, db: Session = Depends(get_db)):
     db_request = crud.get_request(db, request_id=request_id)
     if not db_request:
         raise HTTPException(status_code=404, detail="Request not found")
     return db_request.documents
 
-@router.get("/download/{document_id}")
+@router.get("/download/{document_id}", summary="Download a document")
 def download_document(document_id: int, db: Session = Depends(get_db)):
     db_document = db.query(models.Document).filter(models.Document.id == document_id).first()
     if not db_document:

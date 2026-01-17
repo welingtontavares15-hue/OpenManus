@@ -32,7 +32,7 @@ class Request(Base):
     contract_expiration = Column(Date, nullable=True)
     adjustment_month = Column(Integer, nullable=True) # 1-12
     machine_id = Column(String, nullable=True) # For machine history
-    selected_quote_id = Column(Integer, ForeignKey("quotes.id"), nullable=True)
+    selected_quote_id = Column(Integer, ForeignKey("quotes.id", use_alter=True, name="fk_selected_quote"), nullable=True)
 
     quotes = relationship("Quote", back_populates="request", foreign_keys="Quote.request_id")
     documents = relationship("Document", back_populates="request")
