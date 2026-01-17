@@ -47,3 +47,28 @@ def create_document(db: Session, document: schemas.DocumentCreate):
     db.commit()
     db.refresh(db_document)
     return db_document
+
+# Machine CRUD
+def get_machine(db: Session, machine_id: int):
+    return db.query(models.Machine).filter(models.Machine.id == machine_id).first()
+
+def get_machines(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.Machine).offset(skip).limit(limit).all()
+
+def create_machine(db: Session, machine: schemas.MachineCreate):
+    db_machine = models.Machine(**machine.model_dump())
+    db.add(db_machine)
+    db.commit()
+    db.refresh(db_machine)
+    return db_machine
+
+# Maintenance CRUD
+def create_maintenance(db: Session, maintenance: schemas.MaintenanceCreate):
+    db_maintenance = models.Maintenance(**maintenance.model_dump())
+    db.add(db_maintenance)
+    db.commit()
+    db.refresh(db_maintenance)
+    return db_maintenance
+
+def get_machine_maintenance(db: Session, machine_id: int):
+    return db.query(models.Maintenance).filter(models.Maintenance.machine_id == machine_id).all()

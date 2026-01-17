@@ -3,26 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dishwasher Workflow System | Professional Portal</title>
+    <title>DW Management System | Workflow & Assets</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>
-        :root { --primary-blue: #0d6efd; --success-green: #198754; }
-        .workflow-stepper { display: flex; justify-content: space-between; position: relative; margin-bottom: 2rem; }
-        .workflow-stepper::before { content: ""; position: absolute; top: 15px; left: 0; right: 0; height: 2px; background: #dee2e6; z-index: 1; }
-        .step-item { position: relative; z-index: 2; text-align: center; font-size: 0.75rem; color: #6c757d; width: 100%; }
-        .step-circle { width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 2px solid #dee2e6; display: flex; align-items: center; justify-content: center; margin: 0 auto 5px; font-weight: bold; }
-        .step-item.active { color: var(--primary-blue); font-weight: bold; }
-        .step-item.active .step-circle { border-color: var(--primary-blue); background: #e7f1ff; }
-        .step-item.completed { color: var(--success-green); }
-        .step-item.completed .step-circle { border-color: var(--success-green); background: #d1e7dd; color: var(--success-green); }
-        .card { border: none; box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); transition: transform 0.2s; }
-        .status-badge { text-transform: capitalize; border-radius: 20px; padding: 0.35em 0.8em; }
-        #detailsPanel { display: none; }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 z-3 d-flex align-items-center justify-content-center" style="display:none !important;">
+        <div class="card shadow-lg" style="width: 100%; max-width: 400px;">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="bi bi-shield-lock text-primary display-4"></i>
+                    <h4 class="mt-2">System Login</h4>
+                    <p class="text-muted small">Please authenticate to continue</p>
+                </div>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="loginEmail" class="form-control" placeholder="admin@example.com" value="admin@example.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="admin123" value="admin123" required>
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary">Sign In</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center" href="#">
                 <i class="bi bi-gear-fill me-2"></i>
@@ -35,45 +48,45 @@
     </nav>
 
     <div class="container py-4">
-        <!-- Dashboard Header -->
-        <div class="row mb-4">
-            <div class="col-12 d-flex justify-content-between align-items-center">
-                <h2 class="h4 mb-0">Operational Dashboard</h2>
-                <div>
-                    <button class="btn btn-outline-primary btn-sm me-2" data-bs-toggle="modal" data-bs-target="#partnerModal">
-                        <i class="bi bi-people me-1"></i> Partners
-                    </button>
-                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newRequestModal">
-                        <i class="bi bi-plus-lg me-1"></i> New Request
-                    </button>
-                </div>
-            </div>
-        </div>
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link active" onclick="showTab('list')">Workflows</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" onclick="showTab('kanban')">Kanban View</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" onclick="showTab('machine')">Machines & Maintenance</a>
+            </li>
+        </ul>
 
         <div class="row">
-            <!-- Sidebar: Notifications & Historical Import -->
-            <div class="col-lg-4">
+            <!-- Sidebar -->
+            <div class="col-lg-3">
                 <div class="card mb-4">
                     <div class="card-header bg-white">
-                        <h6 class="mb-0 text-primary fw-bold">Active Notifications</h6>
+                        <h6 class="mb-0 text-primary fw-bold">Notifications</h6>
                     </div>
                     <div class="card-body p-0" id="notificationContainer">
-                        <div class="text-center py-4 text-muted small">Loading notifications...</div>
+                        <div class="text-center py-4 text-muted small">Loading...</div>
                     </div>
                 </div>
 
-                <div class="card mb-4 border-info">
-                    <div class="card-body">
-                        <h6 class="card-title text-info fw-bold"><i class="bi bi-clock-history me-2"></i>FY2026 Historical Sync</h6>
-                        <p class="card-text small text-muted">Import legacy machine data into the workflow engine.</p>
-                        <button class="btn btn-sm btn-info text-white w-100" onclick="simulateImport()">Run History Sync</button>
-                    </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newRequestModal">
+                        <i class="bi bi-plus-lg me-1"></i> New Request
+                    </button>
+                    <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#partnerModal">
+                        <i class="bi bi-people me-1"></i> Partners
+                    </button>
                 </div>
             </div>
 
-            <!-- Main Content: Requests List -->
-            <div class="col-lg-8">
-                <div id="listPanel">
+            <!-- Main Content Area -->
+            <div class="col-lg-9">
+                <!-- Workflows Tab -->
+                <div id="listPanel" class="tab-content-panel">
                     <div class="card">
                         <div class="card-header bg-white d-flex justify-content-between align-items-center">
                             <h6 class="mb-0 fw-bold">Active Machine Workflows</h6>
@@ -90,9 +103,38 @@
                                         <th class="text-end pe-3">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="requestTableBody">
-                                    <!-- Dynamic content -->
-                                </tbody>
+                                <tbody id="requestTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kanban Tab -->
+                <div id="kanbanPanel" class="tab-content-panel" style="display:none;">
+                    <div class="row kanban-board g-3 overflow-auto flex-nowrap pb-3" id="kanbanBoard">
+                        <!-- Kanban columns generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Machines Tab -->
+                <div id="machinePanel" class="tab-content-panel">
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold">Managed Assets (Machines)</h6>
+                            <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#newMachineModal">Add Machine</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Serial</th>
+                                        <th>Model</th>
+                                        <th>Status</th>
+                                        <th>Location</th>
+                                        <th class="text-end pe-3">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="machineTableBody"></tbody>
                             </table>
                         </div>
                     </div>
@@ -108,21 +150,14 @@
                             <h5 class="mb-0" id="detailTitle">Request Details</h5>
                         </div>
                         <div class="card-body">
-                            <!-- Stepper -->
-                            <div class="workflow-stepper" id="workflowStepper">
-                                <!-- Steps generated dynamically -->
-                            </div>
-
+                            <div class="workflow-stepper" id="workflowStepper"></div>
                             <div class="row g-4">
                                 <div class="col-md-6">
-                                    <h6 class="fw-bold mb-3">Partner Quotes</h6>
+                                    <h6 class="fw-bold mb-3 text-muted small uppercase">Partner Quotes</h6>
                                     <div id="quotesList" class="mb-3"></div>
-                                    <button class="btn btn-sm btn-outline-primary" id="addQuoteBtn">
-                                        <i class="bi bi-plus-circle me-1"></i> Simulate Partner Quote
-                                    </button>
                                 </div>
                                 <div class="col-md-6">
-                                    <h6 class="fw-bold mb-3">Documents & Compliance</h6>
+                                    <h6 class="fw-bold mb-3 text-muted small uppercase">Documents & Compliance</h6>
                                     <div id="documentList" class="mb-3"></div>
                                     <div class="input-group input-group-sm">
                                         <select id="docTypeSelect" class="form-select">
@@ -135,12 +170,10 @@
                                     </div>
                                 </div>
                             </div>
-
                             <hr class="my-4">
-
                             <div class="row">
                                 <div class="col-12">
-                                    <h6 class="fw-bold">Contract Intelligence</h6>
+                                    <h6 class="fw-bold text-muted small uppercase">Contract Intelligence</h6>
                                     <div class="row mt-3">
                                         <div class="col-md-4">
                                             <label class="form-label small text-muted">Expiration Date</label>
@@ -164,10 +197,19 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="mt-4 text-end" id="finalActionArea"></div>
+                        </div>
+                    </div>
 
-                            <div class="mt-4 text-end" id="finalActionArea">
-                                <!-- Technical Acceptance Button -->
-                            </div>
+                    <!-- Timeline Section -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-white">
+                            <h6 class="mb-0 fw-bold">Case Timeline</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush small" id="requestTimeline">
+                                <!-- Timeline items -->
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -181,7 +223,7 @@
             <div class="modal-content">
                 <form id="newRequestForm">
                     <div class="modal-header">
-                        <h5 class="modal-title">Initialize New Machine Flow</h5>
+                        <h5 class="modal-title">Initialize Workflow</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -195,10 +237,88 @@
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Create Workflow</button>
+                        <button type="submit" class="btn btn-primary">Create</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: New Machine -->
+    <div class="modal fade" id="newMachineModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="newMachineForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Register New Machine</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-2">
+                            <div class="col-12 mb-2">
+                                <label class="form-label">Serial Number</label>
+                                <input type="text" id="macSerial" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Brand</label>
+                                <input type="text" id="macBrand" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Model</label>
+                                <input type="text" id="macModel" class="form-control" required>
+                            </div>
+                            <div class="col-12 mb-2">
+                                <label class="form-label">Location</label>
+                                <input type="text" id="macLocation" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">Register</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Machine History & Log Maintenance -->
+    <div class="modal fade" id="machineHistoryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Maintenance Record</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-5 border-end">
+                            <h6 class="fw-bold mb-3">Log New Service</h6>
+                            <form id="maintenanceLogForm">
+                                <div class="mb-2">
+                                    <label class="form-label small">Date</label>
+                                    <input type="date" id="maintDate" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Technician</label>
+                                    <input type="text" id="maintTech" class="form-control form-control-sm" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Service Description</label>
+                                    <textarea id="maintDesc" class="form-control form-control-sm" rows="3" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small">Next Service Due</label>
+                                    <input type="date" id="maintNext" class="form-control form-control-sm">
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary w-100">Log Maintenance</button>
+                            </form>
+                        </div>
+                        <div class="col-md-7">
+                            <h6 class="fw-bold mb-3">Service History</h6>
+                            <div id="machineHistoryList"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -235,277 +355,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const API = '/api';
-        let currentRequestId = null;
-        let partnersList = [];
-
-        const STAGES = [
-            { id: 'quotation', label: 'Quotation' },
-            { id: 'supplier_interaction', label: 'Supplier' },
-            { id: 'selection', label: 'Selection' },
-            { id: 'contracting', label: 'Contracting' },
-            { id: 'installation', label: 'Installation' },
-            { id: 'technical_acceptance', label: 'Acceptance' },
-            { id: 'completed', label: 'Done' }
-        ];
-
-        async function fetchAPI(endpoint, options = {}) {
-            const res = await fetch(`${API}${endpoint}`, options);
-            if (!res.ok) {
-                const err = await res.json();
-                alert(`Error: ${err.detail || 'Request failed'}`);
-                return null;
-            }
-            return res.json();
-        }
-
-        async function loadRequests() {
-            const data = await fetchAPI('/requests/');
-            const tbody = document.getElementById('requestTableBody');
-            tbody.innerHTML = '';
-            data.forEach(req => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="ps-3 fw-bold">#${req.id}</td>
-                    <td>${req.client_id}</td>
-                    <td><span class="badge bg-light text-dark border status-badge">${req.status.replace('_', ' ')}</span></td>
-                    <td class="small text-muted">${new Date(req.created_at).toLocaleDateString()}</td>
-                    <td class="text-end pe-3">
-                        <button class="btn btn-sm btn-primary" onclick="viewRequest(${req.id})">Manage</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        async function loadPartners() {
-            partnersList = await fetchAPI('/partners/');
-            const tbody = document.getElementById('partnerTableBody');
-            tbody.innerHTML = '';
-            partnersList.forEach(p => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${p.name}</td><td>${p.contact_info}</td><td>${p.id}</td>`;
-                tbody.appendChild(tr);
-            });
-        }
-
-        async function loadNotifications() {
-            const data = await fetchAPI('/requests/notifications/upcoming');
-            const container = document.getElementById('notificationContainer');
-            container.innerHTML = '';
-            if (!data || data.length === 0) {
-                container.innerHTML = '<div class="text-center py-4 text-muted small">No pending alerts.</div>';
-                return;
-            }
-            data.forEach(n => {
-                const div = document.createElement('div');
-                div.className = 'p-3 border-bottom';
-                div.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="badge bg-warning text-dark">Action Required</span>
-                        <span class="small text-muted">ID #${n.id}</span>
-                    </div>
-                    <div class="small fw-bold">${n.client_id}</div>
-                    <div class="small text-muted">${n.contract_expiration ? 'Expiring: ' + n.contract_expiration : 'Adjustment Due'}</div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        async function viewRequest(id) {
-            currentRequestId = id;
-            const req = await fetchAPI(`/requests/${id}`);
-            if (!req) return;
-
-            document.getElementById('listPanel').style.display = 'none';
-            document.getElementById('detailsPanel').style.display = 'block';
-            document.getElementById('detailTitle').innerText = `Flow Control: #${req.id} - ${req.client_id}`;
-
-            // Render Stepper
-            const stepper = document.getElementById('workflowStepper');
-            stepper.innerHTML = '';
-            let reachedActive = false;
-            STAGES.forEach((stage, index) => {
-                const item = document.createElement('div');
-                item.className = 'step-item';
-                if (stage.id === req.status) {
-                    item.classList.add('active');
-                    reachedActive = true;
-                } else if (!reachedActive) {
-                    item.classList.add('completed');
-                }
-                item.innerHTML = `
-                    <div class="step-circle">${reachedActive && stage.id !== req.status ? index + 1 : (item.classList.contains('completed') ? '✓' : index + 1)}</div>
-                    <div>${stage.label}</div>
-                `;
-                stepper.appendChild(item);
-            });
-
-            // Quotes
-            const quotesList = document.getElementById('quotesList');
-            quotesList.innerHTML = '';
-            if (req.quotes.length === 0) {
-                quotesList.innerHTML = '<p class="text-muted small italic">Waiting for supplier proposals...</p>';
-            } else {
-                req.quotes.forEach(q => {
-                    const isSelected = req.selected_quote_id === q.id;
-                    const card = document.createElement('div');
-                    card.className = `card mb-2 ${isSelected ? 'border-success' : ''}`;
-                    card.innerHTML = `
-                        <div class="card-body p-2 d-flex justify-content-between align-items-center">
-                            <div class="small">
-                                <strong>Partner #${q.partner_id}</strong>: $${q.price}<br>
-                                <span class="text-muted">${q.details}</span>
-                            </div>
-                            ${isSelected ? '<span class="badge bg-success">Selected</span>' :
-                            (req.status === 'quotation' || req.status === 'supplier_interaction' ? `<button class="btn btn-xs btn-outline-success" onclick="selectQuote(${q.id})">Select</button>` : '')}
-                        </div>
-                    `;
-                    quotesList.appendChild(card);
-                });
-            }
-
-            // Documents
-            const docList = document.getElementById('documentList');
-            docList.innerHTML = '';
-            if (req.documents.length === 0) {
-                docList.innerHTML = '<p class="text-muted small">No documents uploaded.</p>';
-            } else {
-                req.documents.forEach(doc => {
-                    const div = document.createElement('div');
-                    div.className = 'd-flex justify-content-between align-items-center mb-1 small border-bottom pb-1';
-                    div.innerHTML = `
-                        <span><i class="bi bi-file-earmark-pdf me-2"></i>${doc.doc_type} (${doc.filename})</span>
-                        <a href="${API}/documents/download/${doc.id}" class="btn btn-xs btn-link p-0 text-primary">Download</a>
-                    `;
-                    docList.appendChild(div);
-                });
-            }
-
-            // Contract Inputs
-            document.getElementById('contractExp').value = req.contract_expiration || '';
-            document.getElementById('adjMonth').value = req.adjustment_month || '';
-
-            // Final Action
-            const actionArea = document.getElementById('finalActionArea');
-            actionArea.innerHTML = '';
-            if (req.status === 'technical_acceptance') {
-                actionArea.innerHTML = '<button class="btn btn-primary" onclick="completeAcceptance()">Grant Technical Acceptance</button>';
-            } else if (req.status === 'completed') {
-                actionArea.innerHTML = '<div class="alert alert-success py-2 mb-0 d-inline-block">Project Successfully Completed</div>';
-            }
-        }
-
-        function hideDetails() {
-            document.getElementById('listPanel').style.display = 'block';
-            document.getElementById('detailsPanel').style.display = 'none';
-            loadRequests();
-        }
-
-        async function selectQuote(qId) {
-            await fetchAPI(`/requests/${currentRequestId}/select-quote?quote_id=${qId}`, { method: 'POST' });
-            viewRequest(currentRequestId);
-        }
-
-        async function uploadDoc() {
-            const type = document.getElementById('docTypeSelect').value;
-            const fileInput = document.getElementById('docFileInput');
-            if (!fileInput.files[0]) return alert('Select a file');
-
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-
-            const res = await fetch(`${API}/documents/${currentRequestId}/upload?doc_type=${type}`, {
-                method: 'POST',
-                body: formData
-            });
-            if (res.ok) {
-                fileInput.value = '';
-                viewRequest(currentRequestId);
-            } else {
-                alert('Upload failed');
-            }
-        }
-
-        async function updateContract() {
-            const expiration = document.getElementById('contractExp').value;
-            const month = document.getElementById('adjMonth').value;
-            await fetchAPI(`/requests/${currentRequestId}/contract-details`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contract_expiration: expiration || null,
-                    adjustment_month: month ? parseInt(month) : null
-                })
-            });
-            alert('Details updated');
-            viewRequest(currentRequestId);
-            loadNotifications();
-        }
-
-        async function completeAcceptance() {
-            await fetchAPI(`/requests/${currentRequestId}/complete-technical-acceptance`, { method: 'POST' });
-            viewRequest(currentRequestId);
-        }
-
-        async function simulateImport() {
-            const history = [
-                { description: "Legacy Machine A", client_id: "OLD-01", machine_id: "M-101", contract_expiration: "2026-12-01" },
-                { description: "Legacy Machine B", client_id: "OLD-02", machine_id: "M-102" }
-            ];
-            await fetchAPI('/requests/import-history', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(history)
-            });
-            alert('History imported successfully');
-            loadRequests();
-        }
-
-        document.getElementById('newRequestForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const client_id = document.getElementById('reqClientId').value;
-            const description = document.getElementById('reqDescription').value;
-            const res = await fetchAPI('/requests/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ client_id, description })
-            });
-            if (res) {
-                bootstrap.Modal.getInstance(document.getElementById('newRequestModal')).hide();
-                loadRequests();
-            }
-        };
-
-        document.getElementById('newPartnerForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('partnerName').value;
-            const contact_info = document.getElementById('partnerContact').value;
-            await fetchAPI('/partners/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, contact_info })
-            });
-            document.getElementById('newPartnerForm').reset();
-            loadPartners();
-        };
-
-        document.getElementById('addQuoteBtn').onclick = async () => {
-            if (partnersList.length === 0) return alert('Register a partner first');
-            const pId = partnersList[0].id;
-            await fetchAPI(`/requests/${currentRequestId}/quotes`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ partner_id: pId, price: 1000 + Math.random()*500, details: "Automated simulation quote" })
-            });
-            viewRequest(currentRequestId);
-        };
-
-        loadRequests();
-        loadPartners();
-        loadNotifications();
-        setInterval(loadNotifications, 60000);
-    </script>
+    <script src="js/app.js"></script>
 </body>
 </html>

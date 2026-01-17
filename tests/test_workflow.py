@@ -4,6 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from app.database import Base, get_db
+from app.api.deps import get_current_user
+from app.models.user import User, UserRole
 from app.main import app
 import os
 
@@ -23,7 +25,11 @@ def override_get_db():
     finally:
         db.close()
 
+def override_get_current_user():
+    return User(id=1, email="test@example.com", full_name="Test User", role=UserRole.ADMIN, is_active=True)
+
 app.dependency_overrides[get_db] = override_get_db
+app.dependency_overrides[get_current_user] = override_get_current_user
 
 @pytest.fixture(autouse=True)
 def setup_db():
@@ -95,7 +101,22 @@ def test_full_workflow():
     response = client.get(f"/api/requests/{request_id}")
     assert response.json()["status"] == "installation"
 
-    # 7. Complete Technical Acceptance
+    # 7. Upload Acceptance Document
+    with open("test_acc.txt", "w") as f:
+        f.write("test acc")
+    with open("test_acc.txt", "rb") as f:
+        response = client.post(
+            f"/api/documents/{request_id}/upload",
+            params={"doc_type": "acceptance"},
+            files={"file": ("acc.txt", f)}
+        )
+    assert response.status_code == 200
+
+    # Check request status changed to technical_acceptance
+    response = client.get(f"/api/requests/{request_id}")
+    assert response.json()["status"] == "technical_acceptance"
+
+    # 8. Complete Request
     response = client.post(f"/api/requests/{request_id}/complete-technical-acceptance")
     assert response.status_code == 200
     assert response.json()["status"] == "completed"
@@ -103,3 +124,4 @@ def test_full_workflow():
     # Cleanup
     os.remove("test_contract.txt")
     os.remove("test_nf.txt")
+    os.remove("test_acc.txt")
