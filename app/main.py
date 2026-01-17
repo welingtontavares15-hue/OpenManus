@@ -1,7 +1,8 @@
 from fastapi import FastAPI
-from .routers import requests, partners, documents
-from .database import engine
-from . import models
+from app.api.v1.api import api_router
+from app.core.config import settings
+from app.database import engine
+from app import models
 from fastapi.staticfiles import StaticFiles
 import logging
 
@@ -37,9 +38,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.include_router(requests.router, prefix="/api/requests", tags=["Requests"])
-app.include_router(partners.router, prefix="/api/partners", tags=["Partners"])
-app.include_router(documents.router, prefix="/api/documents", tags=["Documents"])
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Keep old routes for compatibility or redirect them
+app.include_router(api_router, prefix="/api")
 
 # Mount static files
 app.mount("/dashboard", StaticFiles(directory="static", html=True), name="static")

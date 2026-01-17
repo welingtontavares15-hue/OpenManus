@@ -1,17 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from .. import crud, models, schemas
-from ..database import get_db
+from app import crud, models, schemas
+from app.database import get_db
+from app.core.config import settings
+from app.services.workflow_service import WorkflowService
 import os
 import uuid
 from typing import List
 
 router = APIRouter()
 
-UPLOAD_DIR = "uploads"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
+if not os.path.exists(settings.UPLOAD_DIR):
+    os.makedirs(settings.UPLOAD_DIR)
 
 @router.post("/{request_id}/upload", response_model=schemas.Document, summary="Upload a document")
 async def upload_document(
@@ -28,7 +29,7 @@ async def upload_document(
     # Sanitize filename by using a UUID and keeping the extension
     file_ext = os.path.splitext(file.filename)[1]
     safe_filename = f"{uuid.uuid4()}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, safe_filename)
+    file_path = os.path.join(settings.UPLOAD_DIR, safe_filename)
 
     with open(file_path, "wb") as buffer:
         buffer.write(await file.read())
@@ -40,13 +41,8 @@ async def upload_document(
         filename=file.filename
     )
 
-    # Automatically advance status if contract or NF is uploaded
-    if doc_type == models.DocumentType.CONTRACT:
-        crud.update_request(db, request_id, schemas.RequestUpdate(status=models.RequestStatus.CONTRACTING))
-    elif doc_type == models.DocumentType.INVOICE:
-        crud.update_request(db, request_id, schemas.RequestUpdate(status=models.RequestStatus.INSTALLATION))
-    elif doc_type == models.DocumentType.ACCEPTANCE:
-         crud.update_request(db, request_id, schemas.RequestUpdate(status=models.RequestStatus.TECHNICAL_ACCEPTANCE))
+    # Automatically advance status
+    WorkflowService.handle_document_upload(db, request_id, doc_type)
 
     return crud.create_document(db=db, document=doc_create)
 

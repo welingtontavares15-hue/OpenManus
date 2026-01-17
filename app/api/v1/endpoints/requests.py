@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from .. import crud, models, schemas
-from ..database import get_db
+from app import crud, models, schemas
+from app.database import get_db
+from app.services.workflow_service import WorkflowService
 import datetime
 import logging
 
@@ -56,29 +57,12 @@ def submit_quote(request_id: int, quote: schemas.QuoteBase, db: Session = Depend
 @router.post("/{request_id}/select-quote", response_model=schemas.Request, summary="Select a quote")
 def select_quote(request_id: int, quote_id: int, db: Session = Depends(get_db)):
     """Select a specific quote from a partner to move forward."""
-    db_request = crud.get_request(db, request_id=request_id)
-    if not db_request:
-        raise HTTPException(status_code=404, detail="Request not found")
-
-    # Verify quote exists and belongs to this request
-    db_quote = db.query(models.Quote).filter(models.Quote.id == quote_id, models.Quote.request_id == request_id).first()
-    if not db_quote:
-        raise HTTPException(status_code=404, detail="Quote not found for this request")
-
-    logger.info(f"Request {request_id}: Selecting quote {quote_id} from partner {db_quote.partner_id}")
-    return crud.update_request(db, request_id, schemas.RequestUpdate(
-        status=models.RequestStatus.SELECTION,
-        selected_quote_id=quote_id
-    ))
+    return WorkflowService.select_quote(db, request_id, quote_id)
 
 @router.post("/{request_id}/complete-technical-acceptance", response_model=schemas.Request, summary="Complete technical acceptance")
 def complete_technical_acceptance(request_id: int, db: Session = Depends(get_db)):
     """Marks the technical acceptance stage as complete."""
-    db_request = crud.get_request(db, request_id=request_id)
-    if not db_request:
-        raise HTTPException(status_code=404, detail="Request not found")
-
-    return crud.update_request(db, request_id, schemas.RequestUpdate(status=models.RequestStatus.COMPLETED))
+    return WorkflowService.complete_request(db, request_id)
 
 @router.get("/notifications/upcoming", response_model=List[schemas.Request], summary="Get upcoming notifications")
 def get_upcoming_notifications(db: Session = Depends(get_db)):
